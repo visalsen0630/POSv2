@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { loginPOS } from '../firebase/db';
 
 const Login = ({ onLoginSuccess }) => {
   const [fullName, setFullName] = useState('');
@@ -12,27 +13,10 @@ const Login = ({ onLoginSuccess }) => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ full_name: fullName, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || 'Login failed');
-        setLoading(false);
-        return;
-      }
-
-      // Pass user data to parent component
-      onLoginSuccess(data.user);
+      const userData = await loginPOS(fullName, password);
+      onLoginSuccess(userData);
     } catch (err) {
-      console.error('Login error:', err);
-      setError('Unable to connect to server');
+      setError(err.message || 'Login failed. Check your name and password.');
       setLoading(false);
     }
   };
