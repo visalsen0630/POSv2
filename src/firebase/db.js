@@ -211,11 +211,11 @@ export const createSale = async (saleData) => {
     updated_at: serverTimestamp(),
   });
 
-  // Decrement stock for each item
+  // Decrement stock only for items with stock tracking enabled
   const batch = writeBatch(db);
   if (saleData.items) {
     for (const item of saleData.items) {
-      if (item.product_id) {
+      if (item.product_id && item.track_stock !== false) {
         const productRef = doc(db, 'products', item.product_id);
         batch.update(productRef, { stock: increment(-item.quantity) });
       }
@@ -226,13 +226,19 @@ export const createSale = async (saleData) => {
 };
 
 export const getSales = async (companyId, locationId, filters = {}) => {
-  let q = query(
-    collection(db, 'sales'),
-    where('company_id', '==', companyId),
-    orderBy('created_at', 'desc')
+  const snap = await getDocs(
+    query(
+      collection(db, 'sales'),
+      where('company_id', '==', companyId)
+    )
   );
-  const snap = await getDocs(q);
-  let sales = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  let sales = snap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => {
+      const aTime = a.created_at?.toDate ? a.created_at.toDate() : new Date(a.created_at);
+      const bTime = b.created_at?.toDate ? b.created_at.toDate() : new Date(b.created_at);
+      return bTime - aTime;
+    });
 
   if (locationId) {
     sales = sales.filter(s => s.location_id === locationId);
