@@ -730,6 +730,14 @@ const POSSaleScreen = ({ session, onLogout }) => {
         }
         break;
 
+      case 'close_shift':
+        if (currentShift) {
+          setShowCloseShiftModal(true);
+        } else {
+          alert('No shift is currently open');
+        }
+        break;
+
       default:
         alert(`Action: ${button.label}`);
     }
@@ -750,7 +758,8 @@ const POSSaleScreen = ({ session, onLogout }) => {
     },
     { id: 6, label: 'Member', action_type: 'member', color: '#6B7280', position: 6 },
     { id: 7, label: 'Clear', action_type: 'clear_cart', color: '#6B7280', position: 7 },
-    { id: 8, label: 'Settings', action_type: 'custom_function', action_value: 'settings', color: '#6B7280', position: 8 }
+    { id: 8, label: 'Settings', action_type: 'custom_function', action_value: 'settings', color: '#6B7280', position: 8 },
+    { id: 9, label: 'Close Shift', action_type: 'close_shift', color: '#6B7280', position: 9 }
   ];
 
   // Use configured buttons or default ones
