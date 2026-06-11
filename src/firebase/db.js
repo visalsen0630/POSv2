@@ -416,6 +416,20 @@ export const closeShift = async (shiftId, data) => {
   });
 };
 
+export const getLastClosedShift = async (locationId) => {
+  const snap = await getDocs(
+    query(
+      collection(db, 'shifts'),
+      where('location_id', '==', locationId),
+      where('status', '==', 'closed')
+    )
+  );
+  if (snap.empty) return null;
+  const shifts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  shifts.sort((a, b) => (b.closed_at?.seconds || 0) - (a.closed_at?.seconds || 0));
+  return shifts[0];
+};
+
 export const getShiftHistory = async (companyId, locationId) => {
   let q = query(
     collection(db, 'shifts'),

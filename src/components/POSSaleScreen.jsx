@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  getProducts, getCategories, getCurrentShift, openShift, closeShift,
+  getProducts, getCategories, getCurrentShift, getLastClosedShift, openShift, closeShift,
   getPaymentMethods, getDiscounts, getVouchers, getConfig, createSale,
   searchCustomerByPhone, validateVoucher, incrementVoucherUsage
 } from '../firebase/db';
@@ -99,6 +99,11 @@ const POSSaleScreen = ({ session, onLogout }) => {
       try {
         const shift = await getCurrentShift(session.location.id);
         if (!shift) {
+          const lastShift = await getLastClosedShift(session.location.id);
+          if (lastShift) {
+            setOpeningCashUSD(String(parseFloat(lastShift.actual_cash_usd || 0)));
+            setOpeningCashKHR(String(parseFloat(lastShift.actual_cash_khr || 0)));
+          }
           setShowOpenShiftModal(true);
         } else {
           setCurrentShift(shift);
@@ -437,6 +442,8 @@ const POSSaleScreen = ({ session, onLogout }) => {
       setShowCloseShiftModal(false);
       setShowTerminalModal(false);
       setShowPostShiftModal(true);
+      setOpeningCashUSD(actualCashUSD);
+      setOpeningCashKHR(actualCashKHR);
       setActualCashUSD('');
       setActualCashKHR('');
       setCurrentShift(null);
