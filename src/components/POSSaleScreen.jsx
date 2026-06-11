@@ -105,6 +105,7 @@ const POSSaleScreen = ({ session, onLogout }) => {
         }
       } catch (error) {
         console.error('Error fetching shift status:', error);
+        setShowOpenShiftModal(true);
       }
     };
 

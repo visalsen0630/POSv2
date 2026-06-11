@@ -388,13 +388,13 @@ export const getCurrentShift = async (locationId) => {
     query(
       collection(db, 'shifts'),
       where('location_id', '==', locationId),
-      where('status', '==', 'open'),
-      orderBy('opened_at', 'desc'),
-      limit(1)
+      where('status', '==', 'open')
     )
   );
   if (snap.empty) return null;
-  return { id: snap.docs[0].id, ...snap.docs[0].data() };
+  const shifts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  shifts.sort((a, b) => (b.opened_at?.seconds || 0) - (a.opened_at?.seconds || 0));
+  return shifts[0];
 };
 
 export const openShift = async (data) => {
