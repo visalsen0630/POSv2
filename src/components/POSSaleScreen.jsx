@@ -38,7 +38,7 @@ const POSSaleScreen = ({ session, onLogout }) => {
   const [voucherAmount, setVoucherAmount] = useState(0);
   const [showVoucherModal, setShowVoucherModal] = useState(false);
   const [serviceChargeRate, setServiceChargeRate] = useState(0); // Service charge percentage from config
-  const [taxRate, setTaxRate] = useState(8.75); // Tax rate from config
+  const [taxRate, setTaxRate] = useState(0); // Tax disabled for now
   const [exchangeRate] = useState(4100); // USD to KHR rate
   const [showHamburgerMenu, setShowHamburgerMenu] = useState(false); // Hamburger menu state
   const [paymentMethods, setPaymentMethods] = useState([]); // Payment methods from API
@@ -179,9 +179,8 @@ const POSSaleScreen = ({ session, onLogout }) => {
       if (!session?.company?.id) return;
 
       try {
-        const taxConf = await getConfig(session.company.id, session.location?.id || '', 'tax_rate');
         const scConf = await getConfig(session.company.id, session.location?.id || '', 'service_charge');
-        if (taxConf?.value) setTaxRate(parseFloat(taxConf.value));
+        // Tax is disabled for now; ignore tax_rate config.
         if (scConf?.value) setServiceChargeRate(parseFloat(scConf.value));
       } catch (error) {
         console.error('Error fetching configs:', error);
@@ -1084,10 +1083,12 @@ const POSSaleScreen = ({ session, onLogout }) => {
                   <span className="font-medium">${calculateServiceCharge().toFixed(2)}</span>
                 </div>
               )}
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Tax ({taxRate}%)</span>
-                <span className="font-medium">${calculateTax().toFixed(2)}</span>
-              </div>
+              {taxRate > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Tax ({taxRate}%)</span>
+                  <span className="font-medium">${calculateTax().toFixed(2)}</span>
+                </div>
+              )}
               <div className="border-t pt-2 flex justify-between text-xl font-bold">
                 <span>Total</span>
                 <span className="text-blue-600">${calculateTotal().toFixed(2)}</span>
