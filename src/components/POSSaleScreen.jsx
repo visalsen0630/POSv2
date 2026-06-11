@@ -463,7 +463,8 @@ const POSSaleScreen = ({ session, onLogout }) => {
         paymentBreakdown[method].amount += parseFloat(sale.total_amount || 0);
 
         if (method === 'cash') {
-          cashSalesUSD += parseFloat(sale.total_amount || 0);
+          cashSalesUSD += parseFloat(sale.total_amount || 0) - (parseFloat(sale.tendered_khr || 0) / exchangeRate);
+          cashSalesKHR += parseFloat(sale.tendered_khr || 0);
         }
       });
 
@@ -538,7 +539,8 @@ const POSSaleScreen = ({ session, onLogout }) => {
       let cashSalesUSD = 0, cashSalesKHR = 0;
       sales.forEach(sale => {
         if ((sale.payment_method || 'cash') === 'cash') {
-          cashSalesUSD += parseFloat(sale.total_amount || 0);
+          cashSalesUSD += parseFloat(sale.total_amount || 0) - (parseFloat(sale.tendered_khr || 0) / exchangeRate);
+          cashSalesKHR += parseFloat(sale.tendered_khr || 0);
         }
       });
       setCurrentShift(prev => ({ ...prev, cash_sales_usd: cashSalesUSD, cash_sales_khr: cashSalesKHR }));
