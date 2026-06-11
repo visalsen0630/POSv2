@@ -22,12 +22,18 @@ export const loginDashboard = async (email, password) => {
 };
 
 export const loginPOS = async (fullName, password) => {
-  // Look up user by full_name to get their email
-  const snap = await getDocs(query(collection(db, 'users'), where('full_name', '==', fullName)));
-  if (snap.empty) throw new Error('User not found');
+  // Look up the user's email via the public lookup collection (readable
+  // before sign-in), since the `users` collection requires authentication.
+  const lookupSnap = await getDoc(doc(db, 'pos_login_lookup', fullName));
+  if (!lookupSnap.exists()) throw new Error('User not found');
+  const { email } = lookupSnap.data();
+  if (!email) throw new Error('No email linked to this user');
+
+  await signInWithEmailAndPassword(auth, email, password);
+
+  const snap = await getDocs(query(collection(db, 'users'), where('email', '==', email)));
+  if (snap.empty) throw new Error('User profile not found');
   const userData = { id: snap.docs[0].id, ...snap.docs[0].data() };
-  if (!userData.email) throw new Error('No email linked to this user');
-  await signInWithEmailAndPassword(auth, userData.email, password);
   return userData;
 };
 
