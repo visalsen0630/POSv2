@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   getProducts, getCategories, getCurrentShift, openShift, closeShift,
-  getPaymentMethods, getDiscounts, getConfig, createSale,
+  getPaymentMethods, getDiscounts, getVouchers, getConfig, createSale,
   searchCustomerByPhone, validateVoucher, incrementVoucherUsage
 } from '../firebase/db';
 
@@ -43,6 +43,7 @@ const POSSaleScreen = ({ session, onLogout }) => {
   const [showHamburgerMenu, setShowHamburgerMenu] = useState(false); // Hamburger menu state
   const [paymentMethods, setPaymentMethods] = useState([]); // Payment methods from API
   const [availableDiscounts, setAvailableDiscounts] = useState([]); // Discounts from Dashboard
+  const [availableVouchers, setAvailableVouchers] = useState([]); // Vouchers from Dashboard
   const [selectedDiscount, setSelectedDiscount] = useState(null); // Selected discount from list
   const [actionButtons, setActionButtons] = useState([]); // Action buttons from Dashboard config
   const [activeParentButton, setActiveParentButton] = useState(null); // For showing sub-buttons popup
@@ -146,6 +147,30 @@ const POSSaleScreen = ({ session, onLogout }) => {
     };
 
     fetchDiscounts();
+  }, [session?.company?.id, session?.location?.id]);
+
+  useEffect(() => {
+    // Fetch vouchers from Dashboard
+    const fetchVouchers = async () => {
+      if (!session?.company?.id) return;
+
+      try {
+        const response = await getVouchers(session.company.id, session.location?.id);
+        const now = new Date();
+        const activeVouchers = response.filter(v => {
+          if (!v.is_active) return false;
+          if (v.start_date && new Date(v.start_date) > now) return false;
+          if (v.end_date && new Date(v.end_date) < now) return false;
+          if (v.usage_limit && v.used_count >= v.usage_limit) return false;
+          return true;
+        });
+        setAvailableVouchers(activeVouchers);
+      } catch (error) {
+        console.error('Error fetching vouchers:', error);
+      }
+    };
+
+    fetchVouchers();
   }, [session?.company?.id, session?.location?.id]);
 
   useEffect(() => {
@@ -360,6 +385,10 @@ const POSSaleScreen = ({ session, onLogout }) => {
           return;
         }
         await incrementVoucherUsage(voucher.id);
+        setAvailableVouchers(prev => prev
+          .map(v => v.id === voucher.id ? { ...v, used_count: (v.used_count || 0) + 1 } : v)
+          .filter(v => !v.usage_limit || v.used_count < v.usage_limit)
+        );
         setVoucherAmount(discountAmt);
         setShowVoucherModal(false);
         alert(`Voucher applied! Discount: $${discountAmt.toFixed(2)}`);
@@ -459,6 +488,7 @@ const POSSaleScreen = ({ session, onLogout }) => {
           quantity: item.quantity,
           price: item.price,
           total: item.price * item.quantity,
+          track_stock: item.track_stock !== false,
         }))
       };
 
@@ -1430,6 +1460,49 @@ const POSSaleScreen = ({ session, onLogout }) => {
                 </svg>
               </button>
             </div>
+
+            {/* Available Vouchers from Dashboard */}
+            {availableVouchers.length > 0 && (
+              <div className="space-y-3 mb-4">
+                <h4 className="font-semibold text-sm text-gray-700">Available Vouchers:</h4>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {availableVouchers.map((voucher) => {
+                    const meetsMinPurchase = calculateSubtotal() >= parseFloat(voucher.min_purchase || 0);
+                    return (
+                      <button
+                        key={voucher.id}
+                        onClick={() => setVoucherCode(voucher.code)}
+                        className={`w-full p-3 rounded-lg border text-left transition ${
+                          voucherCode === voucher.code
+                            ? 'border-green-500 bg-green-50'
+                            : 'border-gray-200 hover:border-green-300 hover:bg-green-50'
+                        }`}
+                      >
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className="font-medium text-gray-900">{voucher.name}</span>
+                            <span className="block text-xs text-gray-500 font-mono">{voucher.code}</span>
+                          </div>
+                          <span className="font-bold text-green-600">
+                            {voucher.type === 'percentage' ? `${voucher.value}%` : `$${parseFloat(voucher.value).toFixed(2)}`}
+                          </span>
+                        </div>
+                        {parseFloat(voucher.min_purchase || 0) > 0 && (
+                          <p className={`text-xs mt-1 ${meetsMinPurchase ? 'text-green-600' : 'text-red-500'}`}>
+                            {meetsMinPurchase ? '✓' : '✗'} Min. purchase: ${parseFloat(voucher.min_purchase).toFixed(2)}
+                          </p>
+                        )}
+                        {voucher.max_discount && voucher.type === 'percentage' && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Max discount: ${parseFloat(voucher.max_discount).toFixed(2)}
+                          </p>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-4">
               <div>
