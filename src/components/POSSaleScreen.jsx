@@ -411,15 +411,24 @@ const POSSaleScreen = ({ session, onLogout }) => {
 
   const handleOpenShift = async () => {
     try {
+      const openingCashUsd = parseFloat(openingCashUSD) || 0;
+      const openingCashKhr = parseFloat(openingCashKHR) || 0;
       const shiftId = await openShift({
         company_id: session.company.id,
         location_id: session.location.id,
         user_id: session.user.id,
         shift_number: shiftNumber,
-        opening_cash_usd: parseFloat(openingCashUSD) || 0,
-        opening_cash_khr: parseFloat(openingCashKHR) || 0,
+        opening_cash_usd: openingCashUsd,
+        opening_cash_khr: openingCashKhr,
       });
-      setCurrentShift({ id: shiftId, company_id: session.company.id, location_id: session.location.id, shift_number: shiftNumber });
+      setCurrentShift({
+        id: shiftId,
+        company_id: session.company.id,
+        location_id: session.location.id,
+        shift_number: shiftNumber,
+        opening_cash_usd: openingCashUsd,
+        opening_cash_khr: openingCashKhr,
+      });
       setShowOpenShiftModal(false);
       setOpeningCashUSD('');
       setOpeningCashKHR('');
@@ -517,6 +526,26 @@ const POSSaleScreen = ({ session, onLogout }) => {
     setShowPostShiftModal(false);
     alert('Terminal closed. Logging out...');
     onLogout();
+  };
+
+  const handleOpenCloseShiftModal = async () => {
+    if (!currentShift) {
+      alert('No shift is currently open');
+      return;
+    }
+    try {
+      const sales = await getSalesByShift(currentShift.id);
+      let cashSalesUSD = 0, cashSalesKHR = 0;
+      sales.forEach(sale => {
+        if ((sale.payment_method || 'cash') === 'cash') {
+          cashSalesUSD += parseFloat(sale.total_amount || 0);
+        }
+      });
+      setCurrentShift(prev => ({ ...prev, cash_sales_usd: cashSalesUSD, cash_sales_khr: cashSalesKHR }));
+    } catch (error) {
+      console.error('Error computing cash sales for shift:', error);
+    }
+    setShowCloseShiftModal(true);
   };
 
   const handleOpenNewShift = () => {
@@ -802,7 +831,7 @@ const POSSaleScreen = ({ session, onLogout }) => {
 
       case 'close_shift':
         if (currentShift) {
-          setShowCloseShiftModal(true);
+          handleOpenCloseShiftModal();
         } else {
           alert('No shift is currently open');
         }
@@ -1767,7 +1796,7 @@ const POSSaleScreen = ({ session, onLogout }) => {
               <button
                 onClick={() => {
                   setShowTerminalModal(false);
-                  setShowCloseShiftModal(true);
+                  handleOpenCloseShiftModal();
                 }}
                 className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition flex items-center justify-center gap-3"
               >
