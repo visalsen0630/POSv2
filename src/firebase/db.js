@@ -416,6 +416,16 @@ export const closeShift = async (shiftId, data) => {
   });
 };
 
+export const getSalesByShift = async (shiftId) => {
+  const snap = await getDocs(
+    query(
+      collection(db, 'sales'),
+      where('shift_id', '==', shiftId)
+    )
+  );
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+};
+
 export const getLastClosedShift = async (locationId) => {
   const snap = await getDocs(
     query(

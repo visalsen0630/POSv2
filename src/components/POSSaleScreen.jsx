@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  getProducts, getCategories, getCurrentShift, getLastClosedShift, openShift, closeShift,
+  getProducts, getCategories, getCurrentShift, getLastClosedShift, getSalesByShift, openShift, closeShift,
   getPaymentMethods, getDiscounts, getVouchers, getConfig, createSale,
   searchCustomerByPhone, validateVoucher, incrementVoucherUsage
 } from '../firebase/db';
@@ -433,12 +433,67 @@ const POSSaleScreen = ({ session, onLogout }) => {
     }
 
     try {
+      const sales = await getSalesByShift(currentShift.id);
+
+      let totalSales = 0, totalDiscounts = 0, totalTax = 0;
+      let cashSalesUSD = 0, cashSalesKHR = 0;
+      const paymentBreakdown = {};
+
+      sales.forEach(sale => {
+        totalSales += parseFloat(sale.total_amount || 0);
+        totalDiscounts += parseFloat(sale.discount || 0);
+        totalTax += parseFloat(sale.tax || 0);
+
+        const method = sale.payment_method || 'cash';
+        if (!paymentBreakdown[method]) paymentBreakdown[method] = { count: 0, amount: 0 };
+        paymentBreakdown[method].count += 1;
+        paymentBreakdown[method].amount += parseFloat(sale.total_amount || 0);
+
+        if (method === 'cash') {
+          cashSalesUSD += parseFloat(sale.total_amount || 0);
+        }
+      });
+
+      const openingCashUsd = parseFloat(currentShift.opening_cash_usd || 0);
+      const openingCashKhr = parseFloat(currentShift.opening_cash_khr || 0);
+      const expectedCashUSD = openingCashUsd + cashSalesUSD;
+      const expectedCashKHR = openingCashKhr + cashSalesKHR;
+      const actualUSD = parseFloat(actualCashUSD) || 0;
+      const actualKHR = parseFloat(actualCashKHR) || 0;
+
       await closeShift(currentShift.id, {
-        actual_cash_usd: parseFloat(actualCashUSD) || 0,
-        actual_cash_khr: parseFloat(actualCashKHR) || 0,
+        actual_cash_usd: actualUSD,
+        actual_cash_khr: actualKHR,
+        expected_cash_usd: expectedCashUSD,
+        expected_cash_khr: expectedCashKHR,
+        cash_sales_usd: cashSalesUSD,
+        cash_sales_khr: cashSalesKHR,
+        total_transactions: sales.length,
+        total_sales: totalSales,
+        total_discounts: totalDiscounts,
+        total_tax: totalTax,
+        payment_breakdown: paymentBreakdown,
         notes: ''
       });
-      setShiftCloseSummary({ shift_id: currentShift.id });
+
+      setShiftCloseSummary({
+        shift_id: currentShift.id,
+        opening_cash_usd: openingCashUsd,
+        opening_cash_khr: openingCashKhr,
+        cash_sales_usd: cashSalesUSD,
+        cash_sales_khr: cashSalesKHR,
+        expected_cash_usd: expectedCashUSD,
+        expected_cash_khr: expectedCashKHR,
+        actual_cash_usd: actualUSD,
+        actual_cash_khr: actualKHR,
+        variance_usd: actualUSD - expectedCashUSD,
+        variance_khr: actualKHR - expectedCashKHR,
+        total_transactions: sales.length,
+        total_sales: totalSales,
+        total_discounts: totalDiscounts,
+        total_tax: totalTax,
+        payment_breakdown: paymentBreakdown,
+      });
       setShowCloseShiftModal(false);
       setShowTerminalModal(false);
       setShowPostShiftModal(true);
@@ -475,6 +530,7 @@ const POSSaleScreen = ({ session, onLogout }) => {
         location_id: session.location.id,
         location_name: session.location.name,
         user_id: session.user.id,
+        shift_id: currentShift?.id || null,
         customer_id: customer?.id || null,
         phone: customer?.phone || null,
         order_type: 'dine_in',
