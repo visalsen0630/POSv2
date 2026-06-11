@@ -426,6 +426,23 @@ export const getSalesByShift = async (shiftId) => {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 };
 
+export const getShiftsToday = async (locationId) => {
+  const snap = await getDocs(
+    query(
+      collection(db, 'shifts'),
+      where('location_id', '==', locationId)
+    )
+  );
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  return snap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .filter(s => {
+      const opened = s.opened_at?.toDate ? s.opened_at.toDate() : new Date(s.opened_at);
+      return opened >= startOfDay;
+    });
+};
+
 export const getLastClosedShift = async (locationId) => {
   const snap = await getDocs(
     query(

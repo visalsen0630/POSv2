@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  getProducts, getCategories, getCurrentShift, getLastClosedShift, getSalesByShift, openShift, closeShift,
+  getProducts, getCategories, getCurrentShift, getLastClosedShift, getSalesByShift, getShiftsToday, openShift, closeShift,
   getPaymentMethods, getDiscounts, getVouchers, getConfig, createSale,
   searchCustomerByPhone, validateVoucher, incrementVoucherUsage
 } from '../firebase/db';
@@ -26,6 +26,7 @@ const POSSaleScreen = ({ session, onLogout }) => {
   const [actualCashKHR, setActualCashKHR] = useState('');
   const [openingCashUSD, setOpeningCashUSD] = useState('');
   const [openingCashKHR, setOpeningCashKHR] = useState('');
+  const [shiftNumber, setShiftNumber] = useState(1);
   const [shiftCloseSummary, setShiftCloseSummary] = useState(null);
   const [customerPhone, setCustomerPhone] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
@@ -104,6 +105,8 @@ const POSSaleScreen = ({ session, onLogout }) => {
             setOpeningCashUSD(String(parseFloat(lastShift.actual_cash_usd || 0)));
             setOpeningCashKHR(String(parseFloat(lastShift.actual_cash_khr || 0)));
           }
+          const todaysShifts = await getShiftsToday(session.location.id);
+          setShiftNumber(todaysShifts.length >= 2 ? 2 : todaysShifts.length + 1);
           setShowOpenShiftModal(true);
         } else {
           setCurrentShift(shift);
@@ -412,10 +415,11 @@ const POSSaleScreen = ({ session, onLogout }) => {
         company_id: session.company.id,
         location_id: session.location.id,
         user_id: session.user.id,
+        shift_number: shiftNumber,
         opening_cash_usd: parseFloat(openingCashUSD) || 0,
         opening_cash_khr: parseFloat(openingCashKHR) || 0,
       });
-      setCurrentShift({ id: shiftId, company_id: session.company.id, location_id: session.location.id });
+      setCurrentShift({ id: shiftId, company_id: session.company.id, location_id: session.location.id, shift_number: shiftNumber });
       setShowOpenShiftModal(false);
       setOpeningCashUSD('');
       setOpeningCashKHR('');
@@ -478,6 +482,7 @@ const POSSaleScreen = ({ session, onLogout }) => {
 
       setShiftCloseSummary({
         shift_id: currentShift.id,
+        shift_number: currentShift.shift_number || 1,
         opening_cash_usd: openingCashUsd,
         opening_cash_khr: openingCashKhr,
         cash_sales_usd: cashSalesUSD,
@@ -516,6 +521,7 @@ const POSSaleScreen = ({ session, onLogout }) => {
 
   const handleOpenNewShift = () => {
     setShowPostShiftModal(false);
+    setShiftNumber(prev => (prev >= 2 ? 1 : prev + 1));
     setShiftCloseSummary(null);
     setShowOpenShiftModal(true);
   };
@@ -1251,7 +1257,7 @@ const POSSaleScreen = ({ session, onLogout }) => {
             {/* Bottom status bar */}
             <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
               <span>{session?.location?.name || 'POS'}</span>
-              <span>{currentShift ? `Shift ${currentShift.id}` : 'No Shift'}</span>
+              <span>{currentShift ? `Shift ${currentShift.shift_number || 1}` : 'No Shift'}</span>
               <span>{new Date().toLocaleDateString()} {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
             </div>
           </div>
@@ -1922,7 +1928,7 @@ const POSSaleScreen = ({ session, onLogout }) => {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-gray-600">Shift #{shiftCloseSummary.shift_id || 'N/A'}</p>
+                  <p className="text-sm text-gray-600">Shift {shiftCloseSummary.shift_number || 1}</p>
                 </div>
               </div>
             </div>
@@ -2087,6 +2093,27 @@ const POSSaleScreen = ({ session, onLogout }) => {
             <h3 className="text-xl font-bold text-gray-900 mb-6">Open Shift</h3>
 
             <div className="space-y-4">
+              {/* Shift Number Selector */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Shift</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[1, 2].map(num => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => setShiftNumber(num)}
+                      className={`py-2 rounded-lg font-semibold border transition ${
+                        shiftNumber === num
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      Shift {num}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <p className="text-sm text-gray-600 mb-4">Enter the starting cash amounts in the drawer:</p>
 
               {/* Opening Cash USD Input */}
