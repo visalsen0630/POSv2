@@ -230,7 +230,7 @@ const TransactionsScreen = ({ session }) => {
                         </td>
                         <td className="py-3 px-4 text-right">
                           <div className="font-bold text-gray-900">${parseFloat(sale.total_amount || 0).toFixed(2)}</div>
-                          {sale.discount && parseFloat(sale.discount) > 0 && (
+                          {parseFloat(sale.discount || 0) > 0 && (
                             <div className="text-xs text-green-600">-${parseFloat(sale.discount).toFixed(2)} off</div>
                           )}
                         </td>
@@ -300,13 +300,13 @@ const TransactionsScreen = ({ session }) => {
                                     <span className="text-gray-600">Subtotal:</span>
                                     <span className="font-medium">${subtotal.toFixed(2)}</span>
                                   </div>
-                                  {sale.discount && parseFloat(sale.discount) > 0 && (
+                                  {parseFloat(sale.discount || 0) > 0 && (
                                     <div className="flex justify-between text-sm text-green-600">
                                       <span>Discount:</span>
                                       <span className="font-medium">-${parseFloat(sale.discount).toFixed(2)}</span>
                                     </div>
                                   )}
-                                  {sale.tax && parseFloat(sale.tax) > 0 && (
+                                  {parseFloat(sale.tax || 0) > 0 && (
                                     <div className="flex justify-between text-sm">
                                       <span className="text-gray-600">Tax:</span>
                                       <span className="font-medium">${parseFloat(sale.tax).toFixed(2)}</span>
