@@ -557,6 +557,14 @@ const POSSaleScreen = ({ session, onLogout }) => {
     setShowOpenShiftModal(true);
   };
 
+  const handleEndDay = () => {
+    if (confirm('End the day? You will be logged out and the next shift will start with Shift 1.')) {
+      setShowPostShiftModal(false);
+      setShiftCloseSummary(null);
+      onLogout();
+    }
+  };
+
   const handleCheckout = async () => {
     if (cart.length === 0) return;
 
@@ -1807,7 +1815,7 @@ const POSSaleScreen = ({ session, onLogout }) => {
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>Close Shift</span>
+                <span>{currentShift?.shift_number >= 2 ? 'End Day' : 'Close Shift'}</span>
               </button>
 
               <button
@@ -1857,7 +1865,7 @@ const POSSaleScreen = ({ session, onLogout }) => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-lg w-full">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-900">Close Shift</h3>
+              <h3 className="text-xl font-bold text-gray-900">{currentShift.shift_number >= 2 ? 'End Day' : 'Close Shift'}</h3>
               <button
                 onClick={() => setShowCloseShiftModal(false)}
                 className="text-gray-500 hover:text-gray-700"
@@ -1964,7 +1972,7 @@ const POSSaleScreen = ({ session, onLogout }) => {
             <div className="border-b pb-4 mb-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Shift Close Report</h2>
+                  <h2 className="text-2xl font-bold text-gray-900">{shiftCloseSummary.shift_number >= 2 ? 'End of Day Report' : 'Shift Close Report'}</h2>
                   <p className="text-sm text-gray-600 mt-1">
                     {session?.company?.name} - {session?.location?.name}
                   </p>
@@ -2122,12 +2130,21 @@ const POSSaleScreen = ({ session, onLogout }) => {
                   </svg>
                   Export Excel
                 </button>
-                <button
-                  onClick={handleOpenNewShift}
-                  className="py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition"
-                >
-                  Close & Open New Shift
-                </button>
+                {shiftCloseSummary.shift_number >= 2 ? (
+                  <button
+                    onClick={handleEndDay}
+                    className="py-3 bg-gray-800 hover:bg-gray-900 text-white font-semibold rounded-lg transition"
+                  >
+                    End Day
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleOpenNewShift}
+                    className="py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition"
+                  >
+                    Close & Open New Shift
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     if (confirm('Switch cashier? You will be logged out so the next cashier can log in.')) {
