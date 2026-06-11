@@ -826,7 +826,9 @@ const POSSaleScreen = ({ session, onLogout }) => {
         break;
 
       case 'custom_function':
-        if (button.action_value) {
+        if (button.action_value === 'settings') {
+          setShowTerminalModal(true);
+        } else if (button.action_value) {
           alert(`Custom action: ${button.action_value}`);
         }
         break;
@@ -1810,6 +1812,21 @@ const POSSaleScreen = ({ session, onLogout }) => {
 
               <button
                 onClick={() => {
+                  if (confirm('Switch cashier? You will be logged out so the next cashier can log in.')) {
+                    setShowTerminalModal(false);
+                    onLogout();
+                  }
+                }}
+                className="w-full py-4 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg transition flex items-center justify-center gap-3"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m4 5H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+                <span>Switch Cashier</span>
+              </button>
+
+              <button
+                onClick={() => {
                   if (confirm('Turn off terminal and logout?')) {
                     alert('Terminal turned off');
                     setShowTerminalModal(false);
@@ -2086,7 +2103,7 @@ const POSSaleScreen = ({ session, onLogout }) => {
 
             {/* Action Buttons */}
             <div className="border-t pt-6 mt-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <button
                   onClick={() => window.print()}
                   className="py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition flex items-center justify-center gap-2"
@@ -2110,6 +2127,19 @@ const POSSaleScreen = ({ session, onLogout }) => {
                   className="py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition"
                 >
                   Close & Open New Shift
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm('Switch cashier? You will be logged out so the next cashier can log in.')) {
+                      onLogout();
+                    }
+                  }}
+                  className="py-3 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg transition flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m4 5H4m0 0l4 4m-4-4l4-4" />
+                  </svg>
+                  Switch Cashier
                 </button>
               </div>
             </div>
